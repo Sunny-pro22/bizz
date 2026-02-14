@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api', // adjust if your backend runs on a different port
+  baseURL: 'https://bizz-skq6.onrender.com/api', // adjust if your backend runs on a different port
 });
 
 // Request interceptor: attach token to every request
