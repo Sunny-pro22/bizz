@@ -1,0 +1,85 @@
+.container {
+  margin: 20px 0;
+  padding: 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f8f9fa;
+  color: #2c3e50;
+  border: 1px solid #e9ecef;
+}
+
+.button:hover:not(:disabled) {
+  background: #e9ecef;
+  transform: scale(1.02);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.listening {
+  background: #fff3cd;
+  border-color: #ffeeba;
+  color: #856404;
+}
+
+.stop {
+  background: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.micBlocked {
+  color: #e74c3c;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.transcriptBox {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  min-height: 80px;
+}
+
+.interim {
+  color: #7f8c8d;
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.final {
+  color: #2c3e50;
+  font-weight: 600;
+  margin: 4px 0;
+  font-size: 1.1rem;
+}
+
+.error {
+  color: #e74c3c;
+  margin: 4px 0;
+  font-weight: 500;
+}
