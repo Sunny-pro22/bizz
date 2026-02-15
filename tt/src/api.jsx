@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://bizz-skq6.onrender.com//api',
+  baseURL: 'https://bizz-skq6.onrender.com/api',
   timeout: 15000,
 });
 
