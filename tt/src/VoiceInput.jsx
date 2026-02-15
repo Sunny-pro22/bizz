@@ -1,13 +1,18 @@
-// VoiceInput.jsx
-import React, { useRef, useState, useEffect, forwardRef, useImperativeHandle } from "react";
+// src/components/VoiceInput.jsx
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { FaMicrophone, FaStop } from "react-icons/fa";
 import { parseVoice } from "./api";
 import styles from "./VoiceInput.module.css";
 
-// Minimal speech function (generic message)
 function speakText(text, lang = "hi-IN", cb) {
   if (!window?.speechSynthesis) {
-    if (cb) cb();
+    cb?.();
     return;
   }
   window.speechSynthesis.cancel();
@@ -29,14 +34,14 @@ const VoiceInput = forwardRef(({ onCommand, lang = "hi-IN", useHinglish = true }
   const [processing, setProcessing] = useState(false);
 
   useImperativeHandle(ref, () => ({
-    speak: (text, langOverride) => speakText(text, langOverride || lang)
+    speak: (text, langOverride) => speakText(text, langOverride || lang),
   }));
 
-  // Microphone permission check (unchanged)
   useEffect(() => {
     if (!navigator.permissions) return;
     let mounted = true;
-    navigator.permissions.query({ name: "microphone" })
+    navigator.permissions
+      .query({ name: "microphone" })
       .then((result) => {
         if (!mounted) return;
         setMicPermission(result.state === "granted");
@@ -49,7 +54,7 @@ const VoiceInput = forwardRef(({ onCommand, lang = "hi-IN", useHinglish = true }
   const requestMicPermission = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(t => t.stop());
+      stream.getTracks().forEach((t) => t.stop());
       setMicPermission(true);
       return true;
     } catch (err) {
@@ -79,6 +84,7 @@ const VoiceInput = forwardRef(({ onCommand, lang = "hi-IN", useHinglish = true }
     }
 
     try {
+      try { recognitionRef.current?.stop(); } catch (e) {}
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
       recognition.continuous = true;
@@ -135,9 +141,15 @@ const VoiceInput = forwardRef(({ onCommand, lang = "hi-IN", useHinglish = true }
   };
 
   const stopListening = async () => {
-    try { recognitionRef.current?.stop(); } catch (e) { /* ignore */ }
-    setListening(false);
+    try {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) { /* ignore */ }
+      }
+    } catch (stopErr) {
+      console.warn("Error stopping recognition:", stopErr);
+    }
 
+    setListening(false);
     const final = (finalTranscriptRef.current + (interim ? " " + interim : "")).trim();
     setFinalText(final);
     setInterim("");
@@ -151,27 +163,15 @@ const VoiceInput = forwardRef(({ onCommand, lang = "hi-IN", useHinglish = true }
 
     setProcessing(true);
     try {
-      // Send raw text to backend; backend returns parsed object (guaranteed by super fallback)
-      const parsed = await parseVoice(final);
-
-      // Minimal check: if parsed is falsy, treat as error
-      if (!parsed) {
-        throw new Error("Empty response from server.");
+      const parsed = await parseVoice(final); // returns { action, product, quantity, price, source }
+      if (!parsed || typeof parsed !== 'object' || !parsed.action) {
+        throw new Error('Invalid parse result');
       }
-
-      // Optional: log fallback usage quietly (doesn't affect data)
-      if (parsed._source === "fallback") {
-        console.info("Used fallback parser:", parsed);
-      }
-
-      // Generic confirmation – does not rely on product/quantity
       speakText("Command received.", lang);
-
-      // Pass the raw parsed object to parent without any modification
       if (onCommand) onCommand(parsed);
     } catch (err) {
       console.error("parseVoice error:", err);
-      const msg = err?.message || "Server error while parsing";
+      const msg = err.response?.data?.details || err.serverMessage || err?.message || "Server error while parsing";
       setError(msg);
       speakText(msg, lang);
     } finally {
@@ -187,22 +187,26 @@ const VoiceInput = forwardRef(({ onCommand, lang = "hi-IN", useHinglish = true }
     };
   }, []);
 
+  const canStop = !processing && (listening || interim || finalText);
+
   return (
     <div className={styles.container}>
       <div className={styles.controls}>
         <button
           onClick={startListening}
           disabled={listening || processing}
-          className={`${styles.button} ${listening ? styles.listening : ''}`}
+          className={`${styles.button} ${listening ? styles.listening : ""}`}
           aria-pressed={listening}
+          title={listening ? "Recording..." : "Start voice input"}
         >
           <FaMicrophone /> {listening ? "Listening..." : "Start Voice"}
         </button>
 
         <button
           onClick={stopListening}
-          disabled={!listening || processing}
+          disabled={!canStop}
           className={`${styles.button} ${styles.stop}`}
+          title="Stop and process captured speech"
         >
           <FaStop /> {processing ? "Processing..." : "Stop & Process"}
         </button>

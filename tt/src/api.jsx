@@ -1,46 +1,54 @@
-// api.js
+// src/api.js
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://bizz-skq6.onrender.com/api', // adjust if your backend runs on a different port
+  baseURL: 'http://localhost:5000/api',
+  timeout: 15000,
 });
 
-// Request interceptor: attach token to every request
+// attach token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
-  (error) => Promise.reject(error)
+  (err) => Promise.reject(err)
 );
 
-// Response interceptor: handle 401 (unauthorized) globally
+// intercept responses to attach helpful serverMessage
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      // Token is invalid or expired – clear local storage and redirect to login
+  (res) => res,
+  (err) => {
+    if (err.response && err.response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
-    return Promise.reject(error);
+    if (err.response) {
+      err.serverMessage = err.response.data?.details || err.response.data?.error || err.response.statusText;
+    }
+    return Promise.reject(err);
   }
 );
 
-// Product endpoints
 export const fetchProducts = () => api.get('/products');
-export const addProduct = (data) => api.post('/products/add', data);
-export const sellProduct = (data) => api.post('/products/sell', data);
-
-// Profile & transactions
 export const fetchProfile = () => api.get('/profile');
 export const fetchTransactions = () => api.get('/transactions');
 
-// Voice command
-export const parseVoice = (text) => api.post('/voice', { text });
+export const parseVoice = async (text) => {
+  const res = await api.post('/voice', { text });
+  return res.data; // { action, product, quantity, price }
+};
+
+export const addInventory = async (data) => {
+  const res = await api.post('/voice/add', data);
+  return res.data;
+};
+
+export const sellInventory = async (data) => {
+  const res = await api.post('/voice/sell', data);
+  return res.data;
+};
 
 export default api;
