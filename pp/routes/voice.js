@@ -144,16 +144,48 @@ router.post('/', async (req, res) => {
     const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
     const prompt = `
-You are an inventory assistant. Parse the user's command into a JSON object.
+You are an inventory assistant that parses user commands into a JSON object.
 
 RULES:
-- Understand Hinglish (mixed Hindi & English).
-- action must be exactly "add" or "sell" (lowercase).
-- product is the item name (string).
-- quantity is a positive number.
-- price is a number if mentioned, otherwise null.
-- If the command is ambiguous, choose the most likely interpretation and fill missing fields with null.
-- Output ONLY the JSON object. No explanations, no extra text.
+- The action must be exactly "add" or "sell".
+- The product is the item name (string). Extract the most specific noun phrase.
+- Quantity is a positive number (integer or decimal). If not specified, default to 1.
+- Price is a positive number if mentioned, otherwise null. Do not guess a price.
+- Units like "kg", "dozen", "pcs" should be normalized:
+  - If "dozen" is used, multiply the quantity by 12.
+  - Otherwise keep the numeric value as is (the unit is part of the product, e.g., "rice 5kg" → product: "rice", quantity: 5).
+- The output must be a single JSON object with keys: action, product, quantity, price.
+- Do not include any other text, markdown, or explanation.
+
+EXAMPLES:
+User: "add 2 kg aata for 100 rupees"
+Output: {"action": "add", "product": "aata", "quantity": 2, "price": 100}
+
+User: "becho 3 litre doodh 60 rupaye me"
+Output: {"action": "sell", "product": "doodh", "quantity": 3, "price": 60}
+
+User: "buy one dozen eggs 80 rs"
+Output: {"action": "add", "product": "eggs", "quantity": 12, "price": 80}
+
+User: "sell chawal"
+Output: {"action": "sell", "product": "chawal", "quantity": 1, "price": null}
+
+User: "add kharido tel 200"
+Output: {"action": "add", "product": "tel", "quantity": 1, "price": 200}
+
+User: "5 kg aloo bechna hai 20 rs per kg"
+Output: {"action": "sell", "product": "aloo", "quantity": 5, "price": 20}
+
+User: "मुझे 2 किलो चीनी खरीदनी है 50 रुपये किलो"
+Output: {"action": "add", "product": "चीनी", "quantity": 2, "price": 50}
+
+User: "sell 3 pcs soap 15 rupees each"
+Output: {"action": "sell", "product": "soap", "quantity": 3, "price": 15}
+
+User: "add 10 kg"
+Output: {"action": "add", "product": null, "quantity": 10, "price": null}
+
+Now parse the following user command:
 
 User: "${text}"
 Output:
