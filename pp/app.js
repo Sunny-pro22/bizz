@@ -1,4 +1,4 @@
-// geminiTestNoThoughts.js
+
 require("dotenv").config();
 
 console.log("✅ App started...");
